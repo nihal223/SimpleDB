@@ -1,0 +1,76 @@
+Buildfile: /Users/amelie/Teaching/sol_simpledb_437_hw1/build.xml
+
+compile:
+
+testcompile:
+
+runtest:
+    [junit] Running simpledb.systemtest.SMJoinTest
+    [junit] Testsuite: simpledb.systemtest.SMJoinTest
+    [junit] Tests run: 7, Failures: 0, Errors: 0, Time elapsed: 0.685 sec
+    [junit] Tests run: 7, Failures: 0, Errors: 0, Time elapsed: 0.685 sec
+    [junit] ------------- Standard Output ---------------
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test Single Match
+    [junit] JoinTest Relation 1 is  1  pages
+    [junit] JoinTest Relation 2 is  1  pages
+    [junit] Outer Relation: 1 pages read
+    [junit] Inner Relation: 1 pages read
+    [junit] Number of Joined Tuples: 1
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test Multiple Matches
+    [junit] **** RESULTS WILL DIFFER, CHECK TABLE VALUES FOR CORRECTNESS ***
+    [junit] 0 : 0 : 2 : 4 : 6 : 7 : JoinTest Relation 1 is  1  pages
+    [junit] 0 : 0 : 1 : 4 : 6 : 8 : JoinTest Relation 2 is  1  pages
+    [junit] Outer Relation: 1 pages read
+    [junit] Inner Relation: 1 pages read
+    [junit] Number of Joined Tuples: 6
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test CrossProduct
+    [junit] JoinTest Relation 1 is  1  pages
+    [junit] JoinTest Relation 2 is  1  pages
+    [junit] Outer Relation: 1 pages read
+    [junit] Inner Relation: 1 pages read
+    [junit] Number of Joined Tuples: 100
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test CrossProduct
+    [junit] JoinTest Relation 1 is  3  pages
+    [junit] JoinTest Relation 2 is  3  pages
+    [junit] Outer Relation: 3 pages read
+    [junit] Inner Relation: 2399 pages read
+    [junit] Inner Relation: 2399 pages read
+    [junit] Number of Joined Tuples: 360000
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test Unique Outer
+    [junit] JoinTest Relation 1 is  3  pages
+    [junit] JoinTest Relation 2 is  3  pages
+    [junit] Outer Relation: 3 pages read
+    [junit] Inner Relation: 1 pages read
+    [junit] Number of Joined Tuples: 600
+    [junit] --------------------------------------------
+    [junit] JoinTest - Test Unique Inner
+    [junit] JoinTest Relation 1 is  3  pages
+    [junit] JoinTest Relation 2 is  3  pages
+    [junit] Outer Relation: 1 pages read
+    [junit] Inner Relation: 7 pages read
+    [junit] Number of Joined Tuples: 600
+    [junit] --------------------------------------------
+    [junit] **** RESULTS WILL DIFFER ***
+    [junit] JoinTest - Test Large Outer and Inner - Random values
+    [junit] JoinTest Relation 1 is  3  pages
+    [junit] JoinTest Relation 2 is  3  pages
+    [junit] Outer Relation: 3 pages read
+    [junit] Inner Relation: 13 pages read
+    [junit] Number of Joined Tuples: 727
+    [junit] ------------- ---------------- ---------------
+    [junit] 
+    [junit] Testcase: testSingleMatch took 0.07 sec
+    [junit] Testcase: testMultipleMatch took 0.006 sec
+    [junit] Testcase: testSmallCrossProduct took 0.013 sec
+    [junit] Testcase: testLargeCrossProduct took 0.51 sec
+    [junit] Testcase: testUniqueOuter took 0.023 sec
+    [junit] Testcase: testUniqueInner took 0.023 sec
+    [junit] Testcase: testMultipleOuterInner took 0.024 sec
+
+BUILD SUCCESSFUL
+Total time: 1 second
