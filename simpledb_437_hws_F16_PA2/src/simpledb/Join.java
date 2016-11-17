@@ -13,10 +13,10 @@ public class Join extends AbstractDbIterator {
     private JoinPredicate _predicate;
     private DbIterator _outerRelation;
     private DbIterator _innerRelation;
-    private Iterator<Tuple> _outerPage=null;
-    private Iterator<Tuple> _innerPage=null;
+    //private Iterator<Tuple> _outerPage=null; changed it to outerTupleIt
+    //private Iterator<Tuple> _innerPage=null;
 
-    private Tuple _outerRecent=null;
+    private Tuple _outerRecent=null; 
     private Tuple _innerRecent=null;
 
     private int _joinType = 1;
@@ -26,9 +26,28 @@ public class Join extends AbstractDbIterator {
     //added
     private TupleDesc _td1;
     private TupleDesc _td2;
-    private Tuple _firstMatch = null; //First match for outer tuple in inner relation's partition.
-    //int pointerToOuterTuple = 0;
-    //int pointerToInnerTuple;
+
+    //First match for outer tuple in inner relation's partition.
+    private Tuple _firstMatch = null; 
+
+    //A Page wise iterator on DB File for outer relation. 
+    private pagewiseDBIterator _outerPageIt; //pagewiseDBIterator is a custom iterator class that I created
+    
+    //A Page wise iterator on DB file for inner relation.
+    private pagewiseDBIterator _innerPageIt; //pagewiseDBIterator is a custom iterator class that I created
+    
+    //Last page read for outer relation
+    private HeapPage _outerRecentPage = null;
+    
+    //Last heap page read for inner relation.
+    private HeapPage _innerRecentPage = null;
+    
+    //Tuple iterator for tuples in outer relation's page.
+    private Iterator<Tuple> _outerTupleIt = null;
+    
+    //Tuple iterator for tuples in inner relation's page.
+    private Iterator<Tuple> _innerTupleIt = null;
+
   
     public static final int SNL = 0;
     public static final int PNL = 1;    
@@ -44,7 +63,7 @@ public class Join extends AbstractDbIterator {
      * @param child2 Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
-	//IMPLEMENT THIS
+    //IMPLEMENT THIS
         //added
         this._predicate = p;
         this._outerRelation = child1;
@@ -52,44 +71,80 @@ public class Join extends AbstractDbIterator {
 
         this._td1 = child1.getTupleDesc();
         this._td2 = child1.getTupleDesc();
+
+        //page wise iterators
+        this._outerPageIt = new pagewiseDBIterator(this._outerRelation); 
+        this._innerPageIt = new pagewiseDBIterator(this._innerRelation);
     }
 
     public void setJoinAlgorithm(int joinAlgo){
-	_joinType = joinAlgo;
+    _joinType = joinAlgo;
     }
     /**
      * @see simpledb.TupleDesc#combine(TupleDesc, TupleDesc) for possible implementation logic.
      */
     public TupleDesc getTupleDesc() {
-	//IMPLEMENT THIS
+    //IMPLEMENT THIS
         //added
 
-	   return (TupleDesc.combine(this._td1,this._td2));
+       return (TupleDesc.combine(this._td1,this._td2));
     }
 
     public void open()
         throws DbException, NoSuchElementException, TransactionAbortedException, IOException {
-		//IMPLEMENT THIS
+        //IMPLEMENT THIS
             //added
-            _outerRelation.open();
-            _innerRelation.open();
+            if(_joinType==0 || _joinType==3) //If the algorithm is SNL or SMJ
+            {
+                _outerRelation.open();
+                _innerRelation.open();
 
-            _outerRecent = _outerRelation.next();
-            _innerRecent = _innerRelation.next();
+                _outerRecent = _outerRelation.next();
+                _innerRecent = _innerRelation.next();
 
+                //not opening the iterators which are not required in these algorithms
+            }
+
+            if(_joinType==1) //If the algorithm is PNL
+            {
+                _outerRelation.open();
+                _innerRelation.open();
+
+                _outerRecent = null;
+                _innerRecent = null;
+
+                _outerPageIt.open();
+                _innerPageIt.open();
+
+                _outerRecentPage = null;
+                _innerRecentPage = null;
+                _outerTupleIt = null;
+                _innerTupleIt = null;
+            }
     }
 
     public void close() {
 
-//IMPLEMENT THIS
+    //IMPLEMENT THIS
         //added
-        _innerRelation.close();
-        _outerRelation.close();
-        
+        if(_joinType==0 || _joinType==3) //If the algorithm is SNL or SMJ
+        {
+            _innerRelation.close();
+            _outerRelation.close();
+        }
+
+        if(_joinType==1) //If the algorithm is PNL
+        {
+            _innerRelation.close();
+            _outerRelation.close();
+
+            this._outerPageIt.close();
+            this._innerPageIt.close();
+        }
     }
 
     public void rewind() throws DbException, TransactionAbortedException, IOException {
-//IMPLEMENT THIS
+    //IMPLEMENT THIS
         //added
         _innerRelation.rewind();
         _outerRelation.rewind();
@@ -115,18 +170,18 @@ public class Join extends AbstractDbIterator {
      * @see JoinPredicate#filter
      */
     protected Tuple readNext() throws TransactionAbortedException, DbException {
-	switch(_joinType){
-	case SNL: return SNL_readNext();
-	case PNL: return PNL_readNext();
-	case BNL: return BNL_readNext();
-	case SMJ: return SMJ_readNext();
-	case HJ: return HJ_readNext();
-	default: return SNL_readNext();
-	}
+    switch(_joinType){
+    case SNL: return SNL_readNext();
+    case PNL: return PNL_readNext();
+    case BNL: return BNL_readNext();
+    case SMJ: return SMJ_readNext();
+    case HJ: return HJ_readNext();
+    default: return SNL_readNext();
+    }
     }
 
     protected Tuple SNL_readNext() throws TransactionAbortedException, DbException {
-	//IMPLEMENT THIS 
+    //IMPLEMENT THIS 
         //added
         try{ //to catch unhandled exceptions
 
@@ -163,26 +218,92 @@ public class Join extends AbstractDbIterator {
 
         catch(IOException e){}; //IOExeption not reported in SNL_readNext()
 
-	return null; //return null if there are no joining tuples
+    return null; //return null if there are no joining tuples
     }
 
 
     protected Tuple PNL_readNext() throws TransactionAbortedException, DbException {
-	//IMPLEMENT THIS (EXTRA CREDIT ONLY)
-       return null;
+    //IMPLEMENT THIS (EXTRA CREDIT ONLY)
+       try {
+            while ((_outerRecentPage != null) || _outerPageIt.hasNext()) {
+                if (_outerRecentPage == null) {
+                    _outerRecentPage = _outerPageIt.next();
+                }
+                if (_outerTupleIt == null) {
+                    _outerTupleIt = _outerRecentPage.iterator();
+                }
+                
+                while ((_innerRecentPage != null) || _innerPageIt.hasNext()) {
+                    if (_innerRecentPage == null) {
+                        _innerRecentPage = _innerPageIt.next();
+                    }
+                    
+                    if (_innerTupleIt == null) {
+                        _innerTupleIt = _innerRecentPage.iterator();
+                    }
+                    
+                    // Iterate over tuples in outer relation's page and join them with tuples in inner relation's page.
+                    while (_outerTupleIt.hasNext() || _outerRecent != null) {
+                        if (_outerRecent == null) {
+                            _outerRecent = _outerTupleIt.next();
+                        }
+                        
+                        if (_outerRecent != null) {
+                            while (_innerTupleIt.hasNext()) {
+                                _innerRecent = _innerTupleIt.next();
+                                if (_innerRecent != null) {
+                                    ++_numComp;
+                                    if (_predicate.filter(_outerRecent, _innerRecent)) {
+                                        ++_numMatches;
+                                        return joinTuple(_outerRecent, _innerRecent, getTupleDesc());
+                                    }
+                                }
+                            }
+                            
+                            if (_outerTupleIt.hasNext()) {
+                                _innerTupleIt = _innerRecentPage.iterator(); // Reset the iterator to start position
+                            }
+                            
+                            _outerRecent = null;
+                        }
+                    }
+                    
+                    _outerTupleIt = _outerRecentPage.iterator(); // Reset the iterator to start position
+                    _outerRecent = null;
+                    
+                    _innerRecentPage = null;  // To ensure getting next page (if any) in following iteration.
+                    _innerTupleIt = null;
+                }
+                
+                if (_outerPageIt.hasNext()) {
+                    _innerPageIt.rewind();
+                }
+
+                _outerRecentPage = null;  // To ensure getting next page (if any) in following iteration.
+                _outerTupleIt = null;
+            }
+        } catch (NoSuchElementException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+        return null;
     }
 
 
     protected Tuple BNL_readNext() throws TransactionAbortedException, DbException {
-	//no need to implement this
-	return null;
+    //no need to implement this
+    return null;
     }
 
 
     protected Tuple SMJ_readNext() throws TransactionAbortedException, DbException {
-	
-	//IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
-        //Assuming the tuples are in sorted order!!
+    
+    //IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
+    //Assuming the tuples are in sorted order
         
        Tuple resultTuple = null;
         
@@ -260,19 +381,15 @@ public class Join extends AbstractDbIterator {
         return resultTuple;
     }  
             
-          
-    //return null;
-    //}
-
 
     protected Tuple HJ_readNext() throws TransactionAbortedException, DbException {
-	//no need to implement this
-	return null;
+    //no need to implement this
+    return null;
     }
 
 
     private Tuple joinTuple(Tuple outer, Tuple inner, TupleDesc tupledesc){
-	//IMPLEMENT THIS
+    //IMPLEMENT THIS
         //added
         Tuple resultingTuple = new Tuple(tupledesc); //create the result tuple with the given tuple desscription
         int fieldCount = 0; //variable to iterate over all the attributes outer and inner relation
@@ -287,13 +404,13 @@ public class Join extends AbstractDbIterator {
             fieldCount++; //increment the field count
         }
 
-	return resultingTuple;
+    return resultingTuple;
     }
 
     public int getNumMatches(){
-	return _numMatches;
+    return _numMatches;
     }
     public int getNumComp(){
-	return _numComp;
+    return _numComp;
     }
 }
