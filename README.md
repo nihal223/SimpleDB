@@ -43,3 +43,5 @@ Most of this Code is a standard API adapted from Prof. Sam Madden's 6.830 class 
 1) Implemented the getPage(), pinPage(), unpinPage(), and evictPage() methods in src/simpledb/BufferPool.java (not present in the actual code but present as a compiled class in bin)
 
 2) Implemented the getNumEmptySlots(), setSlot() and getSlot() methods in src/simpledb/HeapPage.java (not present in the actual code but present as a compiled class in bin)
+
+3) Implemented SNL, PNL and SMJ Join Algorithms in Join.java
