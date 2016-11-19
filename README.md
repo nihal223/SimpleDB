@@ -44,4 +44,4 @@ Most of this Code is a standard API adapted from Prof. Sam Madden's 6.830 class 
 
 2) Implemented the getNumEmptySlots(), setSlot() and getSlot() methods in src/simpledb/HeapPage.java (not present in the actual code but present as a compiled class in bin)
 
-3) Implemented SNL, PNL and SMJ Join Algorithms in Join.java
+3) Implemented SNL, PNL and SMJ Join Algorithms in Join.java ( Also created a new class called pagewiseDBIterator for page wise iteration in PNL )
