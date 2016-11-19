@@ -116,10 +116,10 @@ public class SeqScan implements DbIterator {
     }
 
     /* (non-Javadoc)
-     * @see simpledb.DbIterator#seek(simpledb.RecordID)
+     * @see simpledb.DbIterator#goToRecord(simpledb.RecordID)
      */
     @Override
-    public Tuple seek(RecordID record) throws DbException, TransactionAbortedException, IOException {
-        return _iterator.seek(record);
+    public Tuple goToRecord(RecordID record) throws DbException, TransactionAbortedException, IOException {
+        return _iterator.goToRecord(record);
     }
 }

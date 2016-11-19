@@ -23,10 +23,6 @@ public class pagewiseDBIterator {
 		return readNextPage(dbIterator);
 	}
 
-	public void rewind() throws DbException, TransactionAbortedException, IOException {
-		dbIterator.rewind();
-	}
-
 	public void open() throws DbException, TransactionAbortedException, IOException {
 		dbIterator.open();
     }
@@ -34,10 +30,15 @@ public class pagewiseDBIterator {
 	public void close() {
 		dbIterator.close();
     }
+
+    public void rewind() throws DbException, TransactionAbortedException, IOException {
+		dbIterator.rewind();
+	}
 	
 	private HeapPage readNextPage(DbIterator dbIterator) throws NoSuchElementException, DbException, TransactionAbortedException, IOException {
 		HeapPage heapPage = null;
 		if (dbIterator.hasNext()) {
+			//creating a heap page object to temporarily store data
 			heapPage = HeapPage.createTempHeapPage(dbIterator.getTupleDesc());
 			int capacity = heapPage.getNumSlots();
 			while (dbIterator.hasNext() && (capacity > 0)) {

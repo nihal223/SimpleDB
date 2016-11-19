@@ -41,5 +41,5 @@ public interface DbFileIterator {
 
     public int getPagesRead();
 
-    public Tuple seek(RecordID record) throws DbException, TransactionAbortedException, IOException;
+    public Tuple goToRecord(RecordID record) throws DbException, TransactionAbortedException, IOException;
 }

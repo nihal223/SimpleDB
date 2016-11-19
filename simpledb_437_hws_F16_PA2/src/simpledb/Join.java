@@ -13,7 +13,7 @@ public class Join extends AbstractDbIterator {
     private JoinPredicate _predicate;
     private DbIterator _outerRelation;
     private DbIterator _innerRelation;
-    //private Iterator<Tuple> _outerPage=null; changed it to outerTupleIt
+    //private Iterator<Tuple> _outerPage=null; changed it to outerTupleIterator
     //private Iterator<Tuple> _innerPage=null;
 
     private Tuple _outerRecent=null; 
@@ -31,10 +31,10 @@ public class Join extends AbstractDbIterator {
     private Tuple _firstMatch = null; 
 
     //A Page wise iterator on DB File for outer relation. 
-    private pagewiseDBIterator _outerPageIt; //pagewiseDBIterator is a custom iterator class that I created
+    private pagewiseDBIterator _outerPageIterator; //pagewiseDBIterator is a custom iterator class that I created
     
     //A Page wise iterator on DB file for inner relation.
-    private pagewiseDBIterator _innerPageIt; //pagewiseDBIterator is a custom iterator class that I created
+    private pagewiseDBIterator _innerPageIterator; //pagewiseDBIterator is a custom iterator class that I created
     
     //Last page read for outer relation
     private HeapPage _outerRecentPage = null;
@@ -43,11 +43,12 @@ public class Join extends AbstractDbIterator {
     private HeapPage _innerRecentPage = null;
     
     //Tuple iterator for tuples in outer relation's page.
-    private Iterator<Tuple> _outerTupleIt = null;
+    private Iterator<Tuple> _outerTupleIterator = null;
     
     //Tuple iterator for tuples in inner relation's page.
-    private Iterator<Tuple> _innerTupleIt = null;
+    private Iterator<Tuple> _innerTupleIterator = null;
 
+    public int count=0;
   
     public static final int SNL = 0;
     public static final int PNL = 1;    
@@ -73,8 +74,8 @@ public class Join extends AbstractDbIterator {
         this._td2 = child1.getTupleDesc();
 
         //page wise iterators
-        this._outerPageIt = new pagewiseDBIterator(this._outerRelation); 
-        this._innerPageIt = new pagewiseDBIterator(this._innerRelation);
+        this._outerPageIterator = new pagewiseDBIterator(this._outerRelation); 
+        this._innerPageIterator = new pagewiseDBIterator(this._innerRelation);
     }
 
     public void setJoinAlgorithm(int joinAlgo){
@@ -113,13 +114,13 @@ public class Join extends AbstractDbIterator {
                 _outerRecent = null;
                 _innerRecent = null;
 
-                _outerPageIt.open();
-                _innerPageIt.open();
+                _outerPageIterator.open();
+                _innerPageIterator.open();
 
                 _outerRecentPage = null;
                 _innerRecentPage = null;
-                _outerTupleIt = null;
-                _innerTupleIt = null;
+                _outerTupleIterator = null;
+                _innerTupleIterator = null;
             }
     }
 
@@ -138,8 +139,8 @@ public class Join extends AbstractDbIterator {
             _innerRelation.close();
             _outerRelation.close();
 
-            this._outerPageIt.close();
-            this._innerPageIt.close();
+            this._outerPageIterator.close();
+            this._innerPageIterator.close();
         }
     }
 
@@ -224,35 +225,45 @@ public class Join extends AbstractDbIterator {
 
     protected Tuple PNL_readNext() throws TransactionAbortedException, DbException {
     //IMPLEMENT THIS (EXTRA CREDIT ONLY)
+        //_outerPageIterator is a Page wise iterator on DB File for outer relation.      
+        //_innerPageIterator is a Page wise iterator on DB file for inner relation.        
+        //_outerRecentPage is the last page read for outer relation 
+        //_innerRecentPage is the last heap page read for inner relation.  
+        //_outerTupleIterator is a Tuple iterator for tuples in outer relation's page.
+        //_innerTupleIterator is a Tuple iterator for tuples in inner relation's page.
+
        try {
-            while ((_outerRecentPage != null) || _outerPageIt.hasNext()) {
+            while ((_outerRecentPage != null) || _outerPageIterator.hasNext()) { //While outer relation still has pages left
                 if (_outerRecentPage == null) {
-                    _outerRecentPage = _outerPageIt.next();
+                    //the next method gets the next page by calling the readNextpage method is pagewiseDBIterator
+                    _outerRecentPage = _outerPageIterator.next();
                 }
-                if (_outerTupleIt == null) {
-                    _outerTupleIt = _outerRecentPage.iterator();
+                if (_outerTupleIterator == null) {
+                    _outerTupleIterator = _outerRecentPage.iterator();
                 }
                 
-                while ((_innerRecentPage != null) || _innerPageIt.hasNext()) {
+                while ((_innerRecentPage != null) || _innerPageIterator.hasNext()) {
                     if (_innerRecentPage == null) {
-                        _innerRecentPage = _innerPageIt.next();
+                        //the next method gets the next page by calling the readNextpage method is pagewiseDBIterator
+                        _innerRecentPage = _innerPageIterator.next();
                     }
                     
-                    if (_innerTupleIt == null) {
-                        _innerTupleIt = _innerRecentPage.iterator();
+                    if (_innerTupleIterator == null) {
+                        _innerTupleIterator = _innerRecentPage.iterator();
                     }
-                    
+                    //till here page iteration, now tuple iteraions in each page
                     // Iterate over tuples in outer relation's page and join them with tuples in inner relation's page.
-                    while (_outerTupleIt.hasNext() || _outerRecent != null) {
+                    while ( _outerRecent != null || _outerTupleIterator.hasNext()) {
                         if (_outerRecent == null) {
-                            _outerRecent = _outerTupleIt.next();
+                            _outerRecent = _outerTupleIterator.next();
                         }
                         
                         if (_outerRecent != null) {
-                            while (_innerTupleIt.hasNext()) {
-                                _innerRecent = _innerTupleIt.next();
+                            while (_innerTupleIterator.hasNext()) {
+                                ++count;
+                                _innerRecent = _innerTupleIterator.next();
                                 if (_innerRecent != null) {
-                                    ++_numComp;
+                                    _numComp = _numComp+1;
                                     if (_predicate.filter(_outerRecent, _innerRecent)) {
                                         ++_numMatches;
                                         return joinTuple(_outerRecent, _innerRecent, getTupleDesc());
@@ -260,27 +271,28 @@ public class Join extends AbstractDbIterator {
                                 }
                             }
                             
-                            if (_outerTupleIt.hasNext()) {
-                                _innerTupleIt = _innerRecentPage.iterator(); // Reset the iterator to start position
+                            if (_outerTupleIterator.hasNext()) {
+                                _innerTupleIterator = _innerRecentPage.iterator(); // Reset the iterator to start position
+                                count = 0;
                             }
                             
                             _outerRecent = null;
                         }
                     }
                     
-                    _outerTupleIt = _outerRecentPage.iterator(); // Reset the iterator to start position
+                    _outerTupleIterator = _outerRecentPage.iterator(); // Reset the iterator to start position
                     _outerRecent = null;
                     
                     _innerRecentPage = null;  // To ensure getting next page (if any) in following iteration.
-                    _innerTupleIt = null;
+                    _innerTupleIterator = null;
                 }
                 
-                if (_outerPageIt.hasNext()) {
-                    _innerPageIt.rewind();
+                if (_outerPageIterator.hasNext()) {
+                    _innerPageIterator.rewind();
                 }
 
                 _outerRecentPage = null;  // To ensure getting next page (if any) in following iteration.
-                _outerTupleIt = null;
+                _outerTupleIterator = null;
             }
         } catch (NoSuchElementException e) {
             // TODO Auto-generated catch block
@@ -308,27 +320,30 @@ public class Join extends AbstractDbIterator {
        Tuple resultTuple = null;
         
         try {
-            while((_outerRelation.hasNext() && _innerRelation.hasNext()) || (_outerRecent != null)) {
+            while((_outerRelation.hasNext() && _innerRelation.hasNext()) || (_outerRecent != null)) { //While Outer and inner have more tuples to iterate
                 if (_outerRecent == null) {
-                    _outerRecent = _outerRelation.next();
+                    _outerRecent = _outerRelation.next(); //get the next tuple in outer relation
                 }
                 
                 if (_innerRecent == null) {
                     if (_innerRelation.hasNext()) {
-                        _innerRecent = _innerRelation.next();
+                        _innerRecent = _innerRelation.next(); //get the next tupe in inner relation
                     } else {
                         // If we are at end of inner relation, then increment the outer relation and reset the inner relation's iterator back to first match.
                         if (_outerRelation.hasNext()) {
                             _outerRecent = _outerRelation.next();
                             if (_firstMatch != null && _predicate.filter(_outerRecent, _firstMatch)) {
-                                _innerRecent = _innerRelation.seek(_firstMatch.getRecordID());
+                                //goToRecord is a method I created in HeapFileIterator
+                                /*It takes the record ID as the parameter and jumps to the corresponding
+                                tuple location in the DB file using the page number and slot ID*/
+                                _innerRecent = _innerRelation.goToRecord(_firstMatch.getRecordID());
                             }
                             
                             _firstMatch = null;
                         }
                     }
                     
-                    if (_innerRecent == null) {
+                    if (_innerRecent == null) { //either there are no more tuples in the inner relation or there was no match until now
                         break;
                     }
                 }
@@ -336,7 +351,7 @@ public class Join extends AbstractDbIterator {
                 // If predicate matches then join the tuples and proceed to next tuple in inner relation
                 if (_predicate.filter(_outerRecent, _innerRecent)) {
                     ++_numMatches;
-                    ++_numComp;
+                    _numComp = _numComp+1;
 
                     resultTuple = joinTuple(_outerRecent, _innerRecent, getTupleDesc());
 
@@ -348,8 +363,10 @@ public class Join extends AbstractDbIterator {
                     _innerRecent = null;
                     
                     break;
-                } else if (_predicate.getLeftField(_outerRecent).compare(Op.LESS_THAN, _predicate.getRightField(_innerRecent))) {
-                    ++_numComp;
+                } 
+                //Using the LESS_THAN from the Op enum in Predicate.java
+                else if (_predicate.getLeftField(_outerRecent).compare(Op.LESS_THAN, _predicate.getRightField(_innerRecent))) {
+                    _numComp = _numComp+1;
 
                     if (_outerRelation.hasNext()) {
                         _outerRecent = _outerRelation.next();
@@ -358,7 +375,7 @@ public class Join extends AbstractDbIterator {
                             previous matches in the inner relation, so we take the inner relation's iterator back to the first match's position.
                         */
                         if (_firstMatch != null && _predicate.filter(_outerRecent, _firstMatch)) {
-                            _innerRecent = _innerRelation.seek(_firstMatch.getRecordID());
+                            _innerRecent = _innerRelation.goToRecord(_firstMatch.getRecordID());
                         }
                         
                         _firstMatch = null;
@@ -366,7 +383,7 @@ public class Join extends AbstractDbIterator {
                         _outerRecent = null;
                     }
                 } else {
-                    ++_numComp;
+                    _numComp = _numComp+1;
                     _innerRecent = null;
                     
                     if (_firstMatch != null) {

@@ -49,37 +49,7 @@ public class HeapFileIterator implements DbFileIterator {
         return false;
     }
 
-    //added
-    public Tuple seek(RecordID record) throws TransactionAbortedException, IOException, DbException {
-        Tuple tupleSeeked = null;
-        if (record.pageid().pageno() >= _numPages) {
-            throw new NoSuchElementException("Invalid page id for record");
-        } 
-
-        if (((_currentPageId == 0) && (_currentPageId != record.pageid().pageno()))
-                || (record.pageid().pageno() != (_currentPageId - 1))) {
-            _currentPage = readPage(record.pageid().pageno());
-            _currentPageId = record.pageid().pageno() + 1;
-            _pagesRead++;
-        }
-
-        _tupleIterator = _currentPage.iterator();
-        
-        Tuple tmp = null;
-        while (_tupleIterator.hasNext()) {
-            tmp = _tupleIterator.next();
-            if (tmp.getRecordID().equals(record)) {
-                tupleSeeked = tmp;
-                break;
-            }
-        }
-        
-        if (tupleSeeked == null) {
-            throw new NoSuchElementException("Invalid Record id for record");
-        }
-        
-        return tupleSeeked;
-    }
+    
 
     public Tuple next()
         throws DbException, TransactionAbortedException {
@@ -149,5 +119,36 @@ public class HeapFileIterator implements DbFileIterator {
 
     public Page getCurrentPage(){
 	return _currentPage;
+    }
+
+    //added
+    public Tuple goToRecord(RecordID record) throws DbException, TransactionAbortedException, IOException {
+        Tuple tuplegoToRecord = null;
+        if (record.pageid().pageno() >= _numPages) {
+            throw new NoSuchElementException("Invalid Page Id for the record");
+        } 
+
+        if (((_currentPageId == 0) && (_currentPageId != record.pageid().pageno())) || (record.pageid().pageno() != (_currentPageId - 1))) {
+            _currentPage = readPage(record.pageid().pageno());
+            _currentPageId = record.pageid().pageno() + 1;
+            _pagesRead++;
+        }
+
+        _tupleIterator = _currentPage.iterator();
+        
+        Tuple temp = null;
+        while (_tupleIterator.hasNext()) {
+            temp = _tupleIterator.next();
+            if (temp.getRecordID().equals(record)) {
+                tuplegoToRecord = temp;
+                break;
+            }
+        }
+        
+        if (tuplegoToRecord == null) {
+            throw new NoSuchElementException("Invalid Record Id for the record");
+        }
+        
+        return tuplegoToRecord;
     }
 }

@@ -53,7 +53,7 @@ public class TupleIterator implements DbIterator {
     }
 
     @Override
-    public Tuple seek(RecordID record) throws DbException, TransactionAbortedException, IOException {
+    public Tuple goToRecord(RecordID record) throws DbException, TransactionAbortedException, IOException {
         throw new DbException("Not a supported operation");
     }
 }

@@ -18,21 +18,16 @@ public class HeapPage implements Page {
 
     HeapPageId pid;
     TupleDesc td;
-    Header header;
     Tuple tuples[];
     int numSlots;
     boolean dirty;
     TransactionId lasttrans;
     int pin_count;
+    Header header;
 
     /**
-     * Abstraction for heap page header.
-     * Here we try to abstract the implementation and representation of header data, such that
-     * outside caller only knows about slots and bytes.
-     * Internally we represent it in the form of an int[].
-     * 
-     * @author ashish
-     *
+     * Abstracting the representation and implementation of header data, such that
+     * the outside caller only knows about slots and bytes. Internally we represent it in the form of an int[].
      */
     class Header { 
         int[] header;
@@ -44,6 +39,7 @@ public class HeapPage implements Page {
             
             // We are allocating 1 bit per slot, storing data for 32 slots in one integer.
             int numHeaderInts = (int)Math.ceil((float)numSlots/32);
+            //representing in the form of int[]
             header = new int[numHeaderInts];
             
             try {
@@ -135,6 +131,15 @@ public class HeapPage implements Page {
             }
             return -1;
         }
+
+        /**
+         * Given a slot ID, find its bit index (among 32 bits).
+         * @param slotIndex- Slot's index in heap file.
+         * @return - Bit index among the 32 bits.
+         */
+        private int getBitIndex (int slotIndex) {
+            return (slotIndex % 32);
+        }
         
         /**
          * Given a slot ID what's its corresponding header index?
@@ -145,14 +150,6 @@ public class HeapPage implements Page {
             return (slotIndex / 32);
         }
         
-        /**
-         * Given a slot ID, find its bit index (among 32 bits).
-         * @param slotIndex- Slot's index in heap file.
-         * @return - Bit index among the 32 bits.
-         */
-        private int getBitIndex (int slotIndex) {
-            return (slotIndex % 32);
-        }
     }
     
     /**
@@ -174,9 +171,7 @@ public class HeapPage implements Page {
     public HeapPage(HeapPageId id, byte[] data) throws IOException {
         this.pid = id;
         this.td = Database.getCatalog().getTupleDesc(id.tableid());
-        // this.numSlots = (BufferPool.PAGE_SIZE) / (td.getSize());
         this.numSlots = (BufferPool.PAGE_SIZE * 8) / ((td.getSize() * 8) + 1);
-        // System.out.println(this.numSlots);
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
@@ -228,15 +223,6 @@ public class HeapPage implements Page {
         // initialize pin_count and dirty_bit
         this.pin_count = 0;
         this.dirty = false;
-    }
-    
-    /**
-     * @param td - Table description data for the corresponding table.
-     * @return A heap Page for storing page data temporarily.
-     * @throws IOException
-     */
-    public static HeapPage createTempHeapPage(TupleDesc td) throws IOException {
-        return new HeapPage(new byte[BufferPool.PAGE_SIZE], td);
     }
     
     /**
@@ -378,6 +364,15 @@ public class HeapPage implements Page {
         // int hb = (((BufferPool.PAGE_SIZE / td.getSize()) / 32) +1) * 4;
         int len = BufferPool.PAGE_SIZE;// + hb;
         return new byte[len]; // all 0
+    }
+
+    /**
+     * @param td - Table description data for the corresponding table.
+     * @return A heap Page for storing page data temporarily.
+     * @throws IOException
+     */
+    public static HeapPage createTempHeapPage(TupleDesc td) throws IOException {
+        return new HeapPage(new byte[BufferPool.PAGE_SIZE], td);
     }
 
     /**

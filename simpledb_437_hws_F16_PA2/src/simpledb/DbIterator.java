@@ -23,7 +23,6 @@ public interface DbIterator {
    * from a child operator or an access method).
    *
    * @return The next tuple in the iterator, or null if there are no more tuples.
-
    */
   public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException;
 
@@ -52,5 +51,5 @@ public interface DbIterator {
    * @throws TransactionAbortedException
    * @throws IOException
    */
-  public Tuple seek(RecordID record) throws DbException, TransactionAbortedException, IOException;
+  public Tuple goToRecord(RecordID record) throws DbException, TransactionAbortedException, IOException;
 }
