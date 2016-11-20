@@ -47,8 +47,6 @@ public class Join extends AbstractDbIterator {
     
     //Tuple iterator for tuples in inner relation's page.
     private Iterator<Tuple> _innerTupleIterator = null;
-
-    public int count=0;
   
     public static final int SNL = 0;
     public static final int PNL = 1;    
@@ -260,7 +258,6 @@ public class Join extends AbstractDbIterator {
                         
                         if (_outerRecent != null) {
                             while (_innerTupleIterator.hasNext()) {
-                                ++count;
                                 _innerRecent = _innerTupleIterator.next();
                                 if (_innerRecent != null) {
                                     _numComp = _numComp+1;
@@ -273,7 +270,6 @@ public class Join extends AbstractDbIterator {
                             
                             if (_outerTupleIterator.hasNext()) {
                                 _innerTupleIterator = _innerRecentPage.iterator(); // Reset the iterator to start position
-                                count = 0;
                             }
                             
                             _outerRecent = null;
